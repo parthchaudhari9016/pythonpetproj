@@ -1,8 +1,8 @@
 """
-Qt Stylesheet definitions for dark theme with enhanced section styling.
+Qt Stylesheet definitions for dark theme with enhanced section styling and improved accessibility.
 """
 
-# Catppuccin Mocha inspired color palette
+# Catppuccin Mocha inspired color palette with enhanced contrast
 COLORS = {
     'base': '#1e1e2e',
     'mantle': '#181825',
@@ -28,6 +28,8 @@ COLORS = {
     'mauve': '#cba6f7',
     'pink': '#f5c2e7',
     'rosewater': '#f5e0dc',
+    'gradient_start': '#1e1e2e',
+    'gradient_end': '#313244',
 }
 
 DARK_STYLESHEET = f"""

@@ -90,6 +90,20 @@ class FolderAnalyzer:
             'categories_count': len(self.result.categories),
             'path': str(self.result.root_folder.path)
         }
+    
+    def get_file_sizes(self) -> List[int]:
+        """Get a list of all file sizes in bytes for distribution analysis."""
+        file_sizes = []
+        
+        # Traverse all files in the scan result
+        def traverse_folder(folder: FolderInfo):
+            for file in folder.files:
+                file_sizes.append(file.size)
+            for child in folder.children:
+                traverse_folder(child)
+        
+        traverse_folder(self.result.root_folder)
+        return file_sizes
 
 
 class InsightGenerator:

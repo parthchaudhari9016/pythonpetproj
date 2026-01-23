@@ -1,12 +1,12 @@
 """
 Visualization components using Matplotlib embedded in PySide6.
+Enhanced with interactive features and improved styling.
 """
 import matplotlib
 matplotlib.use('Qt5Agg')
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib.patches import Wedge
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import Dict, List, Tuple
@@ -17,17 +17,17 @@ from PySide6.QtCore import Qt
 from models import FileCategory
 
 
-# Color palette for categories (dark theme friendly)
+# Catppuccin Mocha color palette for consistent theming
 CATEGORY_COLORS = {
-    FileCategory.DOCUMENTS: '#3498db',      # Blue
-    FileCategory.MEDIA_IMAGES: '#9b59b6',   # Purple
-    FileCategory.MEDIA_AUDIO: '#1abc9c',    # Teal
-    FileCategory.MEDIA_VIDEO: '#e74c3c',    # Red
-    FileCategory.CODE: '#2ecc71',           # Green
-    FileCategory.ARCHIVES: '#f39c12',       # Orange
-    FileCategory.DATA: '#00bcd4',           # Cyan
-    FileCategory.EXECUTABLES: '#e91e63',    # Pink
-    FileCategory.OTHERS: '#95a5a6',         # Gray
+    FileCategory.DOCUMENTS: '#89b4fa',      # Blue
+    FileCategory.MEDIA_IMAGES: '#cba6f7',   # Mauve
+    FileCategory.MEDIA_AUDIO: '#94e2d5',    # Teal
+    FileCategory.MEDIA_VIDEO: '#f38ba8',    # Red
+    FileCategory.CODE: '#a6e3a1',           # Green
+    FileCategory.ARCHIVES: '#fab387',       # Peach
+    FileCategory.DATA: '#89dceb',           # Sky
+    FileCategory.EXECUTABLES: '#f5c2e7',    # Pink
+    FileCategory.OTHERS: '#94a3b8',         # Gray
 }
 
 
@@ -241,7 +241,7 @@ class TopFilesChart(BaseChart):
 
 
 class ExtensionChart(BaseChart):
-    """Bar chart showing extension distribution."""
+    """Bar chart showing extension distribution with improved visuals."""
     
     def __init__(self, parent=None):
         super().__init__(parent, width=6, height=3)
@@ -262,26 +262,85 @@ class ExtensionChart(BaseChart):
         ax = self.fig.add_subplot(111)
         ax.set_facecolor('#1e1e2e')
         
-        # Prepare data
-        exts = list(extensions.keys())[:12]
-        counts = [extensions[e] for e in exts]
+        # Prepare data - sort by count descending
+        sorted_exts = sorted(extensions.items(), key=lambda x: x[1], reverse=True)[:12]
+        exts = [ext for ext, count in sorted_exts]
+        counts = [count for ext, count in sorted_exts]
         
-        # Create gradient colors
-        colors = plt.cm.plasma(np.linspace(0.2, 0.8, len(exts)))
+        # Create gradient colors using Catppuccin inspired palette
+        colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(exts)))
         
-        # Create bar chart
+        # Create bar chart with enhanced styling
         x_pos = np.arange(len(exts))
         bars = ax.bar(x_pos, counts, color=colors, edgecolor='#45475a', width=0.7)
         
-        # Add count labels on top of bars
+        # Add count labels on top of bars with improved visibility
         for bar, count in zip(bars, counts):
             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(counts) * 0.02,
-                   str(count), ha='center', color='#cdd6f4', fontsize=8)
+                   str(count), ha='center', color='#cdd6f4', fontsize=8, fontweight='bold')
         
         ax.set_xticks(x_pos)
         ax.set_xticklabels(exts, rotation=45, ha='right', color='#cdd6f4', fontsize=8)
         ax.set_ylabel('File Count', color='#a6adc8', fontsize=9)
-        ax.set_title('Files by Extension', color='#cdd6f4', fontsize=12, fontweight='bold')
+        ax.set_title('Top File Extensions', color='#cdd6f4', fontsize=12, fontweight='bold', pad=10)
+        
+        # Style axes with enhanced visibility
+        ax.tick_params(colors='#6c7086')
+        ax.spines['bottom'].set_color('#45475a')
+        ax.spines['left'].set_color('#45475a')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        # Add subtle grid for readability
+        ax.yaxis.grid(True, color='#313244', linestyle='-', linewidth=0.3)
+        
+        self.fig.tight_layout()
+        self.draw()
+
+
+class SizeDistributionChart(BaseChart):
+    """Histogram showing file size distribution for better storage analysis."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent, width=6, height=3.5)
+    
+    def update_data(self, file_sizes: List[int]):
+        """Update chart with file size distribution data."""
+        self.fig.clear()
+        
+        if not file_sizes:
+            ax = self.fig.add_subplot(111)
+            ax.set_facecolor('#1e1e2e')
+            ax.text(0.5, 0.5, 'No size distribution data', ha='center', va='center', 
+                   color='#cdd6f4', fontsize=12)
+            ax.axis('off')
+            self.draw()
+            return
+        
+        ax = self.fig.add_subplot(111)
+        ax.set_facecolor('#1e1e2e')
+        
+        # Convert bytes to MB for readability
+        sizes_mb = [size / (1024 * 1024) for size in file_sizes if size > 0]
+        
+        # Create histogram with log scale for better distribution
+        n, bins, patches = ax.hist(sizes_mb, bins=10, color='#89b4fa', edgecolor='#45475a', linewidth=1.5)
+        
+        # Color gradient for bins
+        colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(patches)))
+        for patch, color in zip(patches, colors):
+            patch.set_facecolor(color)
+        
+        # Add count labels on top of each bin
+        bin_centers = 0.5 * (bins[:-1] + bins[1:])
+        for count, x in zip(n, bin_centers):
+            if count > 0:
+                ax.text(x, count + max(n) * 0.02, f'{int(count)}', 
+                       ha='center', va='bottom', color='#cdd6f4', fontsize=8)
+        
+        ax.set_xlabel('File Size (MB)', color='#a6adc8', fontsize=9)
+        ax.set_ylabel('Number of Files', color='#a6adc8', fontsize=9)
+        ax.set_title('File Size Distribution', color='#cdd6f4', fontsize=12, fontweight='bold', pad=10)
         
         # Style axes
         ax.tick_params(colors='#6c7086')
@@ -289,6 +348,65 @@ class ExtensionChart(BaseChart):
         ax.spines['left'].set_color('#45475a')
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
+        
+        # Add grid for better readability
+        ax.yaxis.grid(True, color='#313244', linestyle='-', linewidth=0.3)
+        
+        self.fig.tight_layout()
+        self.draw()
+
+
+class FileTypeTreemap(BaseChart):
+    """Treemap visualization showing file type distribution by size."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent, width=7, height=4)
+    
+    def update_data(self, categories: Dict[FileCategory, float]):
+        """Update chart with category size distribution for treemap."""
+        self.fig.clear()
+        
+        if not categories:
+            ax = self.fig.add_subplot(111)
+            ax.set_facecolor('#1e1e2e')
+            ax.text(0.5, 0.5, 'No category data', ha='center', va='center', 
+                   color='#cdd6f4', fontsize=12)
+            ax.axis('off')
+            self.draw()
+            return
+        
+        try:
+            import squarify  # Check if squarify is available
+        except ImportError:
+            ax = self.fig.add_subplot(111)
+            ax.set_facecolor('#1e1e2e')
+            ax.text(0.5, 0.5, 'Treemap library not installed', ha='center', va='center', 
+                   color='#f38ba8', fontsize=11)
+            ax.axis('off')
+            self.draw()
+            return
+        
+        ax = self.fig.add_subplot(111)
+        ax.set_facecolor('#1e1e2e')
+        
+        # Prepare data
+        labels = [f"{cat.value}\n{size:.1f}%" for cat, size in categories.items()]
+        sizes = list(categories.values())
+        colors = [CATEGORY_COLORS.get(cat, '#94a3b8') for cat in categories.keys()]
+        
+        # Create treemap
+        squarify.plot(
+            sizes=sizes,
+            label=labels,
+            color=colors,
+            alpha=0.8,
+            edgecolor='#1e1e2e',
+            linewidth=2
+        )
+        
+        # Customize labels
+        ax.set_title('Storage Distribution by Category', color='#cdd6f4', fontsize=12, fontweight='bold', pad=10)
+        ax.axis('off')
         
         self.fig.tight_layout()
         self.draw()

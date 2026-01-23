@@ -19,47 +19,121 @@ from PySide6.QtGui import QFont, QColor, QBrush, QIcon
 from models import FolderInfo, ScanResult, FileCategory, format_size, CATEGORY_DESCRIPTIONS
 from scanner import ScannerThread
 from analyzer import FolderAnalyzer, InsightGenerator
-from visualizer import CategoryPieChart, FolderBarChart, TopFilesChart, ExtensionChart
+from visualizer import (
+    CategoryPieChart, FolderBarChart, TopFilesChart, ExtensionChart,
+    SizeDistributionChart, FileTypeTreemap
+)
 from styles import DARK_STYLESHEET, COLORS
 
 
 class StatCard(QFrame):
-    """A card widget displaying a statistic."""
+    """A card widget displaying a statistic with enhanced visual effects."""
     
     def __init__(self, title: str, value: str = "0", icon: str = "📊", parent=None):
         super().__init__(parent)
         self.setObjectName("stat-card")
-        self.setMinimumHeight(90)
-        self.setMinimumWidth(140)
+        self.setMinimumHeight(100)
+        self.setMinimumWidth(150)
+        self.setMaximumWidth(250)
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(15, 12, 15, 12)
-        layout.setSpacing(5)
+        layout.setContentsMargins(18, 15, 18, 15)
+        layout.setSpacing(8)
         
         # Icon + Value row
         top_layout = QHBoxLayout()
         
-        icon_label = QLabel(icon)
-        icon_label.setStyleSheet("font-size: 20px; background: transparent;")
-        top_layout.addWidget(icon_label)
+        self.icon_label = QLabel(icon)
+        self.icon_label.setStyleSheet("font-size: 24px; background: transparent;")
+        top_layout.addWidget(self.icon_label)
         
         self.value_label = QLabel(value)
         self.value_label.setObjectName("stat-value")
         self.value_label.setAlignment(Qt.AlignRight)
+        self.value_label.setStyleSheet("font-size: 26px; font-weight: bold; color: #89b4fa;")
         top_layout.addWidget(self.value_label, 1)
         
         layout.addLayout(top_layout)
         
-        # Title label
+        # Title label with improved styling
         self.title_label = QLabel(title)
         self.title_label.setObjectName("stat-label")
         self.title_label.setAlignment(Qt.AlignCenter)
+        self.title_label.setStyleSheet("font-size: 11px; color: #a6adc8; text-transform: uppercase; letter-spacing: 0.5px;")
         
         layout.addWidget(self.title_label)
+        
+        # Add hover effect
+        self.setStyleSheet("""
+            QFrame#stat-card {
+                background-color: #313244;
+                border: 1px solid #45475a;
+                border-radius: 12px;
+                padding: 10px;
+                transition: all 0.3s ease;
+            }
+            QFrame#stat-card:hover {
+                background-color: #45475a;
+                border: 1px solid #89b4fa;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(137, 180, 250, 0.15);
+            }
+        """)
     
     def set_value(self, value: str):
-        """Update the displayed value."""
+        """Update the displayed value with animation effect."""
         self.value_label.setText(value)
+    
+    def set_icon(self, icon: str):
+        """Update the icon."""
+        self.icon_label.setText(icon)
+    
+    def set_title(self, title: str):
+        """Update the title."""
+        self.title_label.setText(title)
+
+
+class ChartContainer(QGroupBox):
+    """A container widget for charts with improved layout and styling."""
+    
+    def __init__(self, title: str, chart: FigureCanvas, parent=None):
+        super().__init__(title, parent)
+        self.setObjectName("chart-container")
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(15, 20, 15, 15)
+        layout.setSpacing(10)
+        
+        # Add chart
+        self.chart = chart
+        self.chart.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout.addWidget(self.chart)
+        
+        # Add container styling
+        self.setStyleSheet("""
+            QGroupBox#chart-container {
+                background-color: #313244;
+                border: 1px solid #45475a;
+                border-radius: 12px;
+                margin-top: 15px;
+                padding: 15px;
+                padding-top: 25px;
+                font-weight: bold;
+                font-size: 13px;
+                color: #cdd6f4;
+            }
+            QGroupBox#chart-container::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                left: 15px;
+                padding: 0 10px;
+                background-color: #313244;
+                color: #cdd6f4;
+            }
+            QGroupBox#chart-container:hover {
+                border-color: #89b4fa;
+            }
+        """)
 
 
 class FolderTreeWidget(QTreeWidget):
@@ -244,7 +318,7 @@ class CategoryCard(QFrame):
 
 
 class VisualizationSection(QFrame):
-    """Section containing all visualization charts in tabs."""
+    """Section containing all visualization charts in tabs with enhanced styling."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -258,8 +332,38 @@ class VisualizationSection(QFrame):
         header.setStyleSheet(f"font-size: 16px; font-weight: bold; padding: 10px; color: {COLORS['text']};")
         layout.addWidget(header)
         
-        # Tab widget for charts
+        # Tab widget for charts with enhanced styling
         self.tabs = QTabWidget()
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #45475a;
+                border-radius: 8px;
+                background-color: #313244;
+            }
+            QTabBar::tab {
+                background-color: #313244;
+                color: #a6adc8;
+                padding: 8px 16px;
+                margin-right: 2px;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                font-weight: 500;
+                font-size: 12px;
+            }
+            QTabBar::tab:selected {
+                background-color: #45475a;
+                color: #cdd6f4;
+                border: 1px solid #45475a;
+                border-bottom: none;
+            }
+            QTabBar::tab:hover {
+                background-color: #45475a;
+                color: #89b4fa;
+            }
+            QTabBar::tab:!selected {
+                margin-top: 2px;
+            }
+        """)
         
         # Category pie chart
         self.pie_chart = CategoryPieChart()
@@ -277,6 +381,14 @@ class VisualizationSection(QFrame):
         self.ext_chart = ExtensionChart()
         self.tabs.addTab(self.ext_chart, "🏷️ Extensions")
         
+        # File size distribution (new)
+        self.size_dist_chart = SizeDistributionChart()
+        self.tabs.addTab(self.size_dist_chart, "📏 Size Distribution")
+        
+        # File type treemap (new)
+        self.treemap_chart = FileTypeTreemap()
+        self.tabs.addTab(self.treemap_chart, "🌳 Category Treemap")
+        
         layout.addWidget(self.tabs)
     
     def update_charts(self, analyzer: FolderAnalyzer):
@@ -292,6 +404,12 @@ class VisualizationSection(QFrame):
         
         ext_dist = analyzer.get_extension_distribution()
         self.ext_chart.update_data(ext_dist)
+        
+        # Update new charts
+        file_sizes = analyzer.get_file_sizes()
+        self.size_dist_chart.update_data(file_sizes)
+        
+        self.treemap_chart.update_data(percentages)
 
 
 class CategorySection(QFrame):
