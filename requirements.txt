@@ -1,0 +1,16 @@
+# File Analyzer - Python Dependencies
+
+# Core UI framework
+PySide6>=6.6.0
+
+# For modern UI interactive charts (optional - modern GUI only)
+# PySide6-WebEngine>=6.6.0
+
+# Data visualization
+matplotlib>=3.8.0
+
+# Optional: For treemap visualization
+# squarify>=0.4.4
+
+# Optional: For faster file scanning on large directories
+# scandir>=1.10.0  # Only needed for Python < 3.5

@@ -2,6 +2,7 @@
 File analysis and statistics calculation.
 """
 from typing import Dict, List, Tuple, Optional
+from datetime import datetime
 from models import (
     FolderInfo, ScanResult, CategoryStats, FileInfo,
     FileCategory, format_size, CATEGORY_DESCRIPTIONS
@@ -217,6 +218,72 @@ class InsightGenerator:
         if summary['largest_files']:
             insight += f"\n📁 **Largest Files**\n"
             for name, size, path in summary['largest_files']:
-                insight += f"  • {name} ({size})\n"
+                insight += f"  • {name} ({size})\n    📍 Path: {path}\n"
         
         return insight
+
+
+class DuplicateDetector:
+    """Detects duplicate files based on name and size."""
+    
+    def __init__(self, root_folder: FolderInfo):
+        self.root_folder = root_folder
+    
+    def find_duplicates(self) -> List[List[FileInfo]]:
+        """Find duplicate files across all folders."""
+        file_map: Dict[tuple, List[FileInfo]] = {}
+        
+        def traverse(folder: FolderInfo):
+            for file in folder.files:
+                # Use name and size as a heuristic for duplicates
+                key = (file.name, file.size)
+                if key not in file_map:
+                    file_map[key] = []
+                file_map[key].append(file)
+            for child in folder.children:
+                traverse(child)
+        
+        traverse(self.root_folder)
+        
+        # Return only groups with more than one file
+        return [group for group in file_map.values() if len(group) > 1]
+
+
+class MarkdownReporter:
+    """Generates Markdown reports from scan results."""
+    
+    def __init__(self, analyzer: FolderAnalyzer):
+        self.analyzer = analyzer
+    
+    def generate_report(self) -> str:
+        """Generate a complete Markdown report."""
+        stats = self.analyzer.get_overview_stats()
+        
+        report = []
+        report.append(f"# File Analysis Report: {stats['path']}")
+        report.append(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        report.append("\n## 📊 Summary")
+        report.append(f"- **Total Files:** {stats['total_files']:,}")
+        report.append(f"- **Total Folders:** {stats['total_folders']:,}")
+        report.append(f"- **Total Size:** {stats['total_size']}")
+        report.append(f"- **Scan Time:** {stats['scan_time']}")
+        
+        report.append("\n## 🏷️ Category Breakdown")
+        percentages = self.analyzer.get_category_percentages()
+        for cat, pct in sorted(percentages.items(), key=lambda x: x[1], reverse=True):
+            summary = self.analyzer.get_category_summary(cat)
+            report.append(f"### {cat.value}")
+            report.append(f"- **Files:** {summary['file_count']:,}")
+            report.append(f"- **Size:** {summary['total_size']} ({pct:.1f}%)")
+            report.append(f"- **Common Extensions:** {', '.join([e[0] for e in summary['extensions']])}")
+        
+        report.append("\n## 📁 Top 10 Largest Folders")
+        for name, size_bytes, size_str in self.analyzer.get_folder_comparison():
+            report.append(f"- **{name}:** {size_str}")
+        
+        report.append("\n## 📄 Top 10 Largest Files")
+        for name, size_str, cat, path in self.analyzer.get_top_files(10):
+            report.append(f"- **{name}:** {size_str} ({cat})")
+            report.append(f"  - Path: `{path}`")
+            
+        return "\n".join(report)
